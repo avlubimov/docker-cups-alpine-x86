@@ -1,0 +1,42 @@
+FROM i386/alpine:latest
+ARG USER=admin
+ARG GROUP=lpadmin
+ARG PASSWORD=admin
+
+MAINTAINER AVL <avlubimov@gmail.com>
+LABEL maintainer="AVL <avlubimov@gmail.com>"
+LABEL description="Cupsd on top of alpine x86"
+LABEL cups="cups-2.4.7-r0"
+
+ENV VOLUME=/srv
+
+RUN apk update
+RUN apk add openrc
+RUN apk add file cups gcompat
+RUN sed -i 's/#rc_sys=""/rc_sys="lxc"/g' /etc/rc.conf 
+RUN echo 'rc_provide="loopback net"' >> /etc/rc.conf 
+RUN sed -i 's/^#\(rc_logger="YES"\)$/\1/' /etc/rc.conf 
+RUN sed -i '/tty/d' /etc/inittab 
+RUN sed -i 's/hostname $opts/# hostname $opts/g' /etc/init.d/hostname
+RUN sed -i 's/mount -t tmpfs/# mount -t tmpfs/g' /lib/rc/sh/init.sh
+RUN sed -i 's/cgroup_add_service /# cgroup_add_service /g' /lib/rc/sh/openrc-run.sh
+
+RUN rm -rf /var/cache/apk/*
+
+RUN adduser -S -H ${USER} -G ${GROUP}
+RUN echo "${USER}:${PASSWORD}" | chpasswd
+
+RUN mkdir -p ${VOLUME}
+RUN mkdir -p ${VOLUME}/cups
+
+COPY --chown=root:root --chmod=0755 docker-entrypoint.sh /
+
+RUN mv /etc/cups/* ${VOLUME}/cups/
+
+
+CMD ["/sbin/init"]
+#ENTRYPOINT /docker-entrypoint.sh /bin/sh
+
+
+
+
