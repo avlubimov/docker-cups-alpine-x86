@@ -1,41 +1,29 @@
-Docker image of the cups print server.
+Образ cups для docker на основе alpine x86
 
 
-The image is built based on centos-7-i686 image, because the main purpose of this image is to install drivers for Brother mfc7440n printer, which are only available for i386.
+x86 потому что используются драйверы x86
 
-The following problems are solved:
+Решеные проблемы:
 
-Yum hangs. The ulimit limit is set to ulimit -n 1024 to resolve.
-Use this hack if you run yum in a container. See Dockerfile
+Cupsd не стартует в  docker version 23-24
 
-cups is not installed completely because some of the web interface files in the cups package are marked as documentation and are not installed due to the nodocs option in yum.
+В логе появляется ошибка:
 
-Solution: sed -i '/nodocs/d' /etc/yum.conf
-see Dockerfile
+# [19/Dec/2023:08:36:45 +0000] cupsdDoSelect() failed - Bad address!
+# [19/Dec/2023:08:36:45 +0000] Listeners[0] = 6
+# [19/Dec/2023:08:36:45 +0000] Listeners[1] = 7
+# [19/Dec/2023:08:36:45 +0000] Listeners[2] = 8
+# [19/Dec/2023:08:36:45 +0000] CGIPipes[0] = 9
+# [19/Dec/2023:08:36:45 +0000] Scheduler shutting down due to program error.
 
-Cupsd does not start in docker version 23.  
-The log says bind failed bad address
-It is solved by setting --ulimit nofile=1024:1024 see run.sh
+обходной путь, при слоздании контейнера указать --ulimit nofile=1024:1024
 
-When creating a container, configuration and logs are available on the host.
-Container serves host dbus and can work with usb printers.
+см. bin/run.sh
 
-If you create the file /etc/cups/START_CUPS_BROWSED in the container 
-then not only cupsd but also cups-browsed will be started, which allows to use printers from other systems.
+Параметры для сборки и установки указаны в bin/params.sh
+В bin лежат скрипты для установки и запуска контейнера
+В корне лежить скрипт build.sh для сборки образа.
 
-to build the image use the build.sh script
-In the rpm directory put the drivers to be added to the system and they will be installed.
+Нерешенные проблемы:
 
-to create a container use the run.sh script
-The cups and cups-browsed configs will appear in the config directory.
-in the logs directory you will see the logs.
-
-You can run the shell in the container with the exec.sh script.
-
-Don't forget to set the root password in the container, otherwise you won't be able to add a printer in the web-interface. 
-
-You can access cups at http://localhost:631.
-
-Ready image: https://hub.docker.com/repository/docker/rhome/centos-7-i686-cups/general
-
-docker pull rhome/centos-7-i686-cups:1
+Очень странно работает cups-browsed. Возможно, это проблема разницы версий cups 1.6.3 и cups 2.4.7.
